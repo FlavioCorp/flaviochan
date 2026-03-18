@@ -4,7 +4,7 @@
   <link rel="icon" type="image/png" href="favicon.png">
 <meta charset="UTF-8">
 <title>Tablon</title>
-<link rel="stylesheet" href="/css/4chan.css">
+<link rel="stylesheet" href="css/4chan.css">
 <style>
 
 /* FONDO XP */
@@ -198,8 +198,8 @@ white-space:pre-wrap;
 </div>
 
 <script type="module">
-import { supabase } from "/js/supabase.js"
-import { initAuth, isLoggedIn, getUsername, logout } from "/js/auth.js"
+import { supabase } from "./supabase.js"
+import { initAuth, isLoggedIn, getUsername, logout } from "./auth.js"
 const session = await initAuth()
 const params = new URLSearchParams(window.location.search)
 const board = params.get("board")
