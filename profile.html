@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<link rel="icon" type="image/png" href="favicon.png">
+<meta charset="UTF-8">
+<title>Perfil</title>
+<link rel="stylesheet" href="/css/4chan.css">
+
+<style>
+
+.xp-window{
+width:720px;
+margin:20px auto;
+border-radius:8px;
+overflow:hidden;
+box-shadow:0 0 10px rgba(0,0,0,0.4);
+border:1px solid #2a5ea7;
+background:#e8f3ff;
+}
+
+.xp-titlebar{
+background:linear-gradient(#3a84d8,#2a63b7);
+color:white;
+font-weight:bold;
+padding:6px 10px;
+font-size:14px;
+border-bottom:1px solid #1d4c8f;
+}
+
+.xp-body{ padding:12px; }
+
+.profile-header{
+display:flex;
+gap:15px;
+align-items:center;
+}
+
+.profile-avatar{
+width:96px;
+height:96px;
+border-radius:6px;
+border:2px solid #2a63b7;
+object-fit:cover;
+}
+
+.profile-name{
+font-size:20px;
+font-weight:bold;
+color:#0a3d91;
+}
+
+.profile-status{
+margin-top:6px;
+font-size:14px;
+color:#333;
+}
+
+.xp-button{
+background:linear-gradient(#ffffff,#cfe4ff);
+border:1px solid #5a88c7;
+padding:4px 10px;
+border-radius:4px;
+cursor:pointer;
+}
+
+.profile-post{
+border:1px solid #8bb1e6;
+background:white;
+margin-bottom:10px;
+border-radius:6px;
+padding:8px;
+}
+
+.profile-post-header{
+font-size:12px;
+color:#0a3d91;
+margin-bottom:5px;
+}
+
+.profile-comment{
+display:flex;
+gap:8px;
+padding:6px 0;
+border-top:1px solid #c8d7f0;
+}
+
+.comment-avatar{
+width:24px;
+height:24px;
+border-radius:4px;
+border:1px solid #6c95d8;
+object-fit:cover;
+}
+
+.comment-username{
+font-weight:bold;
+color:#0a3d91;
+text-decoration:none;
+}
+
+.comment-content{
+font-size:13px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="userBar"></div>
+
+<div class="xp-window">
+<div class="xp-titlebar">Perfil de usuario</div>
+
+<div class="xp-body">
+
+<div class="profile-header">
+
+<img id="avatar" class="profile-avatar" src="img/avatar1.png">
+
+<div>
+
+<div id="username" class="profile-name">Loading...</div>
+<div id="userTag"></div>
+
+<div id="status" class="profile-status">No status yet</div>
+
+<button id="editProfile" class="xp-button">Edit Profile</button>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+<div class="xp-window" id="editWindow" style="display:none">
+
+<div class="xp-titlebar">Editar Perfil</div>
+
+<div class="xp-body">
+
+Username<br>
+<input id="editUsername"><br><br>
+
+Status<br>
+<textarea id="editStatus"></textarea><br><br>
+
+Avatar<br>
+<input type="file" id="editAvatar"><br><br>
+
+User ID<br>
+<input id="editTag"><br><br>
+
+<button id="saveProfile" class="xp-button">Save</button>
+
+</div>
+
+</div>
+
+<div class="xp-window">
+
+<div class="xp-titlebar">User Posts</div>
+
+<div class="xp-body">
+
+<div id="profilePosts"></div>
+
+</div>
+
+</div>
+
+<script type="module">
+
+import { supabase } from "./js/supabase.js"
+
+const avatar=document.getElementById("avatar")
+const username=document.getElementById("username")
+const userTag=document.getElementById("userTag")
+const status=document.getElementById("status")
+
+const editProfile=document.getElementById("editProfile")
+const editWindow=document.getElementById("editWindow")
+
+const editUsername=document.getElementById("editUsername")
+const editStatus=document.getElementById("editStatus")
+const editTag=document.getElementById("editTag")
+const editAvatar=document.getElementById("editAvatar")
+
+const saveProfile=document.getElementById("saveProfile")
+
+const postsDiv=document.getElementById("profilePosts")
+
+/* SESSION */
+
+const { data:{ session } } = await supabase.auth.getSession()
+
+const loggedUserId=session?.user?.id
+
+/* URL */
+
+const params=new URLSearchParams(window.location.search)
+const publicUser=params.get("user")
+
+let profileUserId=null
+let viewingOwnProfile=false
+
+if(publicUser){
+
+const { data } = await supabase
+.from("profiles")
+.select("id")
+.eq("user_tag",publicUser)
+.single()
+
+profileUserId=data.id
+
+if(profileUserId===loggedUserId){
+viewingOwnProfile=true
+}
+
+}else{
+
+profileUserId=loggedUserId
+viewingOwnProfile=true
+
+}
+
+/* HIDE EDIT */
+
+if(!viewingOwnProfile){
+editProfile.style.display="none"
+}
+
+/* EDIT BUTTON */
+
+editProfile.onclick=()=>{
+editWindow.style.display=
+editWindow.style.display==="none"
+?"block":"none"
+}
+
+/* SAVE PROFILE */
+
+saveProfile.onclick=async()=>{
+
+const newUsername=editUsername.value
+const newStatus=editStatus.value
+const newTag=editTag.value
+
+let avatar_url=null
+
+if(editAvatar.files.length>0){
+
+const file=editAvatar.files[0]
+const path="avatars/"+loggedUserId+"-"+Date.now()
+
+await supabase.storage
+.from("avatars")
+.upload(path,file)
+
+const { data:url }=
+supabase.storage.from("avatars").getPublicUrl(path)
+
+avatar_url=url.publicUrl
+
+}
+
+await supabase
+.from("profiles")
+.update({
+username:newUsername,
+status:newStatus,
+user_tag:newTag,
+...(avatar_url && {avatar_url})
+})
+.eq("id",loggedUserId)
+
+loadProfile()
+
+}
+
+/* LOAD PROFILE */
+
+async function loadProfile(){
+
+const { data } = await supabase
+.from("profiles")
+.select("*")
+.eq("id",profileUserId)
+.single()
+
+username.textContent=data.username
+status.textContent=data.status||"No status"
+
+userTag.innerHTML=`<a href="profile.html?user=${data.user_tag}">/u/${data.user_tag}</a>`
+
+if(data.avatar_url){
+avatar.src=data.avatar_url
+}
+
+editUsername.value=data.username
+editStatus.value=data.status
+editTag.value=data.user_tag
+
+}
+
+/* LOAD POSTS */
+
+async function loadProfilePosts(){
+
+const { data } = await supabase
+.from("profile_posts")
+.select("*")
+.eq("user_id",profileUserId)
+.order("created_at",{ascending:false})
+
+postsDiv.innerHTML=""
+
+data.forEach(p=>{
+
+const div=document.createElement("div")
+div.className="profile-post"
+
+div.innerHTML=`
+
+<div class="profile-post-header">
+${new Date(p.created_at).toLocaleString()}
+</div>
+
+<div>${p.content||""}</div>
+
+${p.image_url?`<img src="${p.image_url}" style="max-width:250px">`:""}
+
+<div id="comments-${p.id}"></div>
+
+<div style="margin-top:6px">
+
+<input id="commentInput-${p.id}" placeholder="Write comment">
+
+<button onclick="postComment(${p.id})" class="xp-button">Comment</button>
+
+</div>
+
+`
+
+postsDiv.appendChild(div)
+
+loadComments(p.id)
+
+})
+
+}
+
+/* COMMENT */
+
+window.postComment = async function(postId){
+
+if(!loggedUserId){
+alert("Login required")
+return
+}
+
+const input=document.getElementById("commentInput-"+postId)
+const text=input.value.trim()
+
+if(!text) return
+
+/* INSERT COMMENT */
+
+await supabase
+.from("profile_post_comments")
+.insert([{
+post_id:postId,
+user_id:loggedUserId,
+content:text
+}])
+
+/* GET POST OWNER */
+
+const { data:post } = await supabase
+.from("profile_posts")
+.select("user_id")
+.eq("id",postId)
+.single()
+
+/* CREATE NOTIFICATION */
+
+if(post.user_id !== loggedUserId){
+
+await supabase
+.from("notifications")
+.insert([{
+
+user_id:post.user_id,
+sender_id:loggedUserId,
+type:"profile_comment",
+post_id:postId
+
+}])
+
+}
+
+/* CLEAR INPUT */
+
+input.value=""
+
+loadComments(postId)
+
+}
+
+/* LOAD COMMENTS */
+
+async function loadComments(postId){
+
+const { data } = await supabase
+.from("profile_post_comments")
+.select(`
+*,
+profiles(username,avatar_url,user_tag)
+`)
+.eq("post_id",postId)
+.order("created_at",{ascending:true})
+
+const box=document.getElementById("comments-"+postId)
+
+box.innerHTML=""
+
+data.forEach(c=>{
+
+const div=document.createElement("div")
+div.className="profile-comment"
+
+const avatar=c.profiles?.avatar_url||"img/avatar1.png"
+const name=c.profiles?.username||"Anonymous"
+const tag=c.profiles?.user_tag||""
+
+div.innerHTML=`
+
+<a href="profile.html?user=${tag}">
+<img class="comment-avatar" src="${avatar}">
+</a>
+
+<div class="comment-content">
+
+<a class="comment-username" href="profile.html?user=${tag}">
+${name}
+</a>
+
+: ${c.content}
+
+</div>
+
+`
+
+box.appendChild(div)
+
+})
+
+}
+
+/* INIT */
+
+loadProfile()
+loadProfilePosts()
+
+</script>
+
+<script type="module" src="/js/userBar./js"></script>
+
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<link rel="icon" type="image/png" href="favicon.png">
+<meta charset="UTF-8">
+<title>Login</title>
+<link rel="stylesheet" href="/css/4chan.css">
+
+<style>
+
+body{
+margin:0;
+height:100vh;
+display:flex;
+flex-direction:column;
+}
+
+#main{
+flex:1;
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+.window{
+width:360px;
+background:#ece9d8;
+border:2px solid #245edb;
+box-shadow:0 0 12px rgba(0,0,0,0.3);
+font-family:Tahoma, sans-serif;
+}
+
+.titlebar{
+background:linear-gradient(#4a8cf7,#2b5edb);
+color:white;
+padding:6px 10px;
+font-weight:bold;
+}
+
+.body{
+padding:20px;
+text-align:center;
+}
+
+input{
+width:90%;
+padding:6px;
+margin:6px 0;
+border:1px solid #7f9db9;
+}
+
+button{
+margin-top:10px;
+padding:6px 16px;
+border:1px solid #245edb;
+background:#d6e3f5;
+cursor:pointer;
+}
+
+button:hover{
+background:#bcd2f0;
+}
+
+#message{
+margin-top:10px;
+font-size:13px;
+}
+
+.links{
+margin-top:10px;
+font-size:13px;
+}
+
+.links a{
+color:#245edb;
+text-decoration:none;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="top-gradient"></div>
+
+<div id="main">
+
+<div class="window">
+
+<div class="titlebar">
+User Login
+</div>
+
+<div class="body">
+
+<input id="email" type="email" placeholder="Email">
+
+<input id="password" type="password" placeholder="Password">
+
+<button id="loginBtn">Login</button>
+
+<div id="message"></div>
+
+<div class="links">
+<a href="register.html">Create account</a>
+</div>
+
+</div>
+</div>
+</div>
+
+<script type="module">
+
+import { supabase } from "/js/supabase.js"
+
+const loginBtn = document.getElementById("loginBtn")
+const message = document.getElementById("message")
+
+loginBtn.onclick = async () => {
+
+const email = document.getElementById("email").value
+const password = document.getElementById("password").value
+
+const { error } = await supabase.auth.signInWithPassword({
+email,
+password
+})
+
+if(error){
+message.style.color="red"
+message.textContent="Invalid login"
+return
+}
+
+window.location.href="index.html"
+
+}
+
+</script>
+
+</body>
+</html>

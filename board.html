@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="icon" type="image/png" href="favicon.png">
+<meta charset="UTF-8">
+<title>Tablon</title>
+<link rel="stylesheet" href="/css/4chan.css">
+<style>
+
+/* FONDO XP */
+
+body{
+
+background:
+url("img/xp-bliss.jpg") no-repeat center center fixed;
+
+background-size:cover;
+
+font-family:Tahoma,Verdana,sans-serif;
+
+}
+
+
+/* CONTENEDOR PRINCIPAL */
+
+#main{
+
+width:900px;
+
+margin:auto;
+
+background:#f4f8ff;
+
+border:2px solid #3a6ea5;
+
+padding:10px;
+
+}
+
+
+/* TITULO BOARD */
+
+#board-title{
+
+background:linear-gradient(#5ea6ff,#2c66c3);
+
+color:white;
+
+padding:6px;
+
+border:1px solid #244a87;
+
+margin-bottom:10px;
+
+}
+
+
+/* REPLY BOX */
+
+#reply-box{
+
+border:2px solid #3a6ea5;
+
+background:#f1f6ff;
+
+margin-bottom:15px;
+
+}
+
+#reply-box h3{
+
+background:linear-gradient(#6fb4ff,#3b7dd6);
+
+color:white;
+
+margin:0;
+
+padding:5px;
+
+border-bottom:1px solid #2f66b3;
+
+}
+
+.reply-inner{
+
+padding:8px;
+
+}
+
+
+/* POSTS */
+
+.post{
+
+border:1px solid #6a90c5;
+
+background:#ffffff;
+
+margin-bottom:10px;
+
+}
+
+
+/* HEADER */
+
+.post-header{
+
+background:#dbe8ff;
+
+padding:4px;
+
+border-bottom:1px solid #6a90c5;
+
+font-size:13px;
+
+}
+
+
+/* AUTOR */
+
+.post-name{
+
+font-weight:bold;
+
+color:#003a8f;
+
+cursor:pointer;
+
+text-decoration:none;
+
+}
+
+.post-name:hover{
+
+text-decoration:underline;
+
+}
+
+
+/* CUERPO */
+
+.post-body{
+
+display:flex;
+
+gap:10px;
+
+padding:8px;
+
+}
+
+.post-avatar{
+
+width:120px;
+
+border:1px solid #6a90c5;
+
+}
+
+
+/* TEXTO */
+
+.post-text{
+
+white-space:pre-wrap;
+
+}
+
+</style>
+</head>
+<body>
+<div id="userBar"></div>
+
+<div id="top-gradient"></div>
+
+<div id="main">
+
+<h2 id="board-title"></h2>
+
+<!-- CREATE THREAD -->
+<div id="reply-box">
+  <h3>Publica algo!!1!</h3>
+  <div class="reply-inner">
+    <input type="file" id="threadImage" accept="*/*">
+    <div class="upload-bar hidden" id="uploadBar">
+  <div class="upload-bar-inner" id="uploadProgress"></div>
+  <div class="upload-bar-text" id="uploadText">0%</div>
+</div>
+
+
+    <textarea id="threadText" placeholder="Thread text..."></textarea><br>
+    <button id="postThread">Publicar</button>
+  </div>
+</div>
+
+<div id="threads"></div>
+
+</div>
+
+<script type="module">
+import { supabase } from "/js/supabase.js"
+import { initAuth, isLoggedIn, getUsername, logout } from "/js/auth.js"
+const session = await initAuth()
+const params = new URLSearchParams(window.location.search)
+const board = params.get("board")
+
+const bar = document.getElementById("userBar")
+
+if (isLoggedIn()) {
+
+  bar.innerHTML = `
+  Logged as: ${getUsername()}
+  <button id="logoutBtn">Salir,,</button>
+  `
+
+  document.getElementById("logoutBtn").onclick = logout
+
+} else {
+
+  bar.innerHTML = `
+  Posting as Anonymous
+  <a href="/login.html">Login</a>
+  <a href="/register.html">Register</a>
+  `
+}
+
+document.getElementById("board-title").textContent = "/" + board + "/"
+
+const threadsDiv = document.getElementById("threads")
+const postButton = document.getElementById("postThread")
+const threadText = document.getElementById("threadText")
+const fileInput = document.getElementById("threadImage")
+
+async function loadThreads() {
+  const { data, error } = await supabase
+    .from("threads")
+    .select("*")
+    .eq("board_slug", board)
+    .order("last_bump", { ascending: false })
+
+
+  if (error) {
+    alert(error.message)
+    return
+  }
+supabase
+  .channel("boards-" + board)
+  .on(
+    "postgres_changes",
+    {
+      event: "UPDATE",
+      schema: "public",
+      table: "threads",
+      filter: `board_slug=eq.${board}`
+    },
+    () => {
+      loadThreads()
+    }
+  )
+  .subscribe()
+
+  threadsDiv.innerHTML = ""
+
+  data.forEach(t => {
+    const author = t.user_id
+  ? (t.profiles?.username || "User")
+  : "Anonymous"
+    const div = document.createElement("div")
+    div.className = "post"
+
+    div.innerHTML = `
+      <div class="post-header">
+  <span class="post-name">${author}</span>
+  <span class="post-no">No.${t.id}</span>
+  <span class="post-time">${new Date(t.created_at).toLocaleString()}</span>
+  <span class="post-replies">Replies: ${t.replies || 0}</span>
+  <span class="post-bump">Last bump: ${t.last_bump ? new Date(t.last_bump).toLocaleString() : "never"}</span>
+  <a href="thread.html?id=${t.id}" class="post-reply">[Open]</a>
+</div>
+
+      <div class="post-body">
+        <a href="thread.html?id=${t.id}">
+  <img class="post-avatar" src="${t.image_url || 'img/avatar1.png'}">
+</a>
+
+
+        <div class="post-content">
+          ${t.content ? `<div class="post-text">${t.content}</div>` : ""}
+
+      </div>
+    `
+
+    threadsDiv.appendChild(div)
+  })
+}
+
+postButton.onclick = async () => {
+  const content = threadText.value.trim()
+  const file = fileInput.files[0]
+  let imageUrl = null
+
+  if (!content && !file) {
+    alert("Pon algo primero xdxdxd")
+    return
+  }
+
+  if (file) {
+    const filename = Date.now() + "_" + file.name
+
+    const { error: uploadError } = await supabase
+      .storage
+      .from("images")
+      .upload(filename, file)
+
+    if (uploadError) {
+      alert(uploadError.message)
+      return
+    }
+
+    const { data } = supabase
+      .storage
+      .from("images")
+      .getPublicUrl(filename)
+
+    imageUrl = data.publicUrl
+  }
+
+const now = new Date().toISOString()
+
+let userId = null
+
+if (session) {
+  userId = session.user.id
+}
+
+const { error } = await supabase.from("threads").insert([{
+  board_slug: board,
+  content,
+  image_url: imageUrl,
+  created_at: now,
+  last_bump: now,
+  replies: 0,
+  user_id: userId
+}])
+
+
+  if (error) {
+    alert(error.message)
+    return
+  }
+
+  threadText.value = ""
+  fileInput.value = ""
+  loadThreads()
+}
+
+loadThreads()
+</script>
+
+<script type="module" src="/js/userBar.js"></script>
+
+</body>
+</html>

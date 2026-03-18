@@ -1,0 +1,405 @@
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <link rel="icon" type="image/png" href="favicon.png">
+  <meta charset="UTF-8">
+  <title>Thread</title>
+  <link rel="stylesheet" href="css/4chan.css">
+  
+  </head>
+  <body>
+    <div id="userBar"></div>
+  <div id="top-gradient"></div>
+
+  <div id="main">
+
+    <div id="thread-title">
+      <h2>Hilo</h2>
+    </div>
+
+    <!-- REPLY BOX -->
+    <div id="reply-box">
+      <h3>Responder</h3>
+      <div class="reply-inner">
+        <input type="file" id="imageInput" accept="*/*">
+        <div class="upload-bar hidden" id="uploadBar">
+  <div class="upload-bar-inner" id="uploadProgress"></div>
+  <div class="upload-bar-text" id="uploadText">0%</div>
+</div>
+
+        <textarea id="replyText" placeholder="Write your reply here..."></textarea><br>
+        <button id="replyButton">RESPONDELE!!</button>
+      </div>
+    </div>
+
+    <!-- POSTS -->
+    <div id="posts"></div>
+
+  </div>
+
+  <script type="module">
+  import { supabase } from "./js/supabase.js"
+
+  const params = new URLSearchParams(window.location.search)
+  const threadId = params.get("id")
+
+  /* ===== POSTER ID ===== */
+  function getPosterId(threadId) {
+    let key = "poster_" + threadId
+    let id = localStorage.getItem(key)
+
+    if (!id) {
+      id = Math.random().toString(36).substring(2, 8).toUpperCase()
+      localStorage.setItem(key, id)
+    }
+    return id
+  }
+
+  const posterId = getPosterId(threadId)
+
+  const postsDiv = document.getElementById("posts")
+  const replyText = document.getElementById("replyText")
+  const replyButton = document.getElementById("replyButton")
+
+  /* ===== QUOTES ===== */
+  function parseQuotes(text) {
+    if (!text) return ""
+    return text.replace(/>>(\d+)/g, (m, id) => {
+      return `<span class="quote"
+        onmouseover="showPreview(event, ${id})"
+        onmouseout="hidePreview()"
+        onclick="jumpToPost(${id})"
+      >&gt;&gt;${id}</span>`
+    })
+  }
+
+  /* ===== QUOTE PREVIEW ===== */
+  let previewBox = null
+
+  window.showPreview = function(e, id) {
+    const post = document.querySelector(`[data-post="${id}"]`)
+    if (!post) return
+
+    previewBox = document.createElement("div")
+    previewBox.className = "quote-preview"
+    previewBox.innerHTML = post.innerHTML
+
+    document.body.appendChild(previewBox)
+
+    previewBox.style.left = e.pageX + 10 + "px"
+    previewBox.style.top = e.pageY + 10 + "px"
+  }
+
+  window.hidePreview = function() {
+    if (previewBox) {
+      previewBox.remove()
+      previewBox = null
+    }
+  }
+
+  /* ===== JUMP TO POST ===== */
+  window.jumpToPost = function(id) {
+    const post = document.querySelector(`[data-post="${id}"]`)
+    if (!post) return
+
+    post.scrollIntoView({ behavior: "smooth", block: "center" })
+    post.classList.add("highlight")
+
+    setTimeout(() => post.classList.remove("highlight"), 2000)
+  }
+
+  /* ===== QUICK REPLY ===== */
+  window.quickReply = function(id) {
+    replyText.value = ">>" + id + "\n"
+    replyText.focus()
+    document.getElementById("reply-box")
+      .scrollIntoView({ behavior: "smooth", block: "center" })
+  }
+
+  /* ===== LOAD POSTS ===== */
+ let realtimeSubscribed = false
+
+async function loadPosts() {
+
+const { data, error } = await supabase
+.from("posts")
+.select(`
+*,
+profiles!posts_user_id_fkey(username, avatar_url)
+`)
+.eq("thread_id", threadId)
+.order("id", { ascending: false })
+
+if (error) {
+  alert(error.message)
+  return
+}
+
+  postsDiv.innerHTML = ""
+
+  data.forEach(renderPost)
+
+  if (!realtimeSubscribed) {
+
+    supabase
+      .channel("thread-" + threadId)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "posts",
+          filter: `thread_id=eq.${threadId}`
+        },
+        payload => {
+
+  const p = payload.new
+
+  if (document.querySelector(`[data-post="${p.id}"]`)) return
+
+  renderPost(p)
+
+  window.scrollTo({
+  top: 0,
+  behavior: "smooth"
+})
+
+}
+      )
+      .subscribe()
+
+    realtimeSubscribed = true
+  }
+}
+function renderPost(p) {
+
+  const div = document.createElement("div")
+  div.className = "post"
+  div.dataset.post = p.id
+
+  if (p.poster_id === posterId) {
+    div.classList.add("mine")
+  }
+
+  const date = new Date(p.created_at)
+  const formatted = date.toLocaleString()
+
+  div.innerHTML = `
+    <div class="post-header">
+      <span class="post-name">${p.profiles?.username || "Anonymous"}</span>
+      <span class="post-time">${formatted}</span>
+      <span class="post-no">No.${p.id}</span>
+      <span class="post-id">ID:${p.poster_id || "null"}</span>
+      <a class="post-reply" onclick="quickReply(${p.id})">[Reply]</a>
+    </div>
+
+    ${p.image_url ? `
+      <div class="post-file">
+        File:
+        <a href="${p.image_url}" target="_blank">${p.image_name || "image"}</a>
+        (${Math.round((p.image_size || 0)/1024)} KB, ${p.image_width || "?"}x${p.image_height || "?"})
+      </div>
+    ` : ""}
+
+    <div class="post-body">
+      <img class="post-avatar" src="${p.profiles?.avatar_url || "img/avatar1.png"}">
+
+      <div class="post-content">
+        ${p.content ? `<div class="post-text">${parseQuotes(p.content)}</div>` : ""}
+
+        ${p.file_type === "image" ? `
+          <img class="post-image" src="${p.image_url}" onclick="this.classList.toggle('full')">
+        ` : p.file_type === "video" ? `
+          <video class="post-video" src="${p.image_url}" controls></video>
+        ` : p.file_type === "audio" ? `
+          <audio controls src="${p.image_url}"></audio>
+        ` : p.image_url ? `
+          <a class="post-file-download" href="${p.image_url}" target="_blank">
+            📎 ${p.image_name} (${Math.round(p.image_size/1024)} KB)
+          </a>
+        ` : ""}
+
+      </div>
+    </div>
+  `
+
+  postsDiv.appendChild(div)
+}
+  /* ===== POST REPLY ===== */
+  function getFileType(file) {
+  if (!file) return null
+  if (file.type.startsWith("image/")) return "image"
+  if (file.type.startsWith("video/")) return "video"
+  if (file.type.startsWith("audio/")) return "audio"
+  return "file"
+}
+async function getSignedUploadUrl(filename) {
+  const { data, error } = await supabase.storage
+    .from("images")
+    .createSignedUploadUrl(filename)
+
+  if (error) {
+    alert(error.message)
+    return null
+  }
+
+  return data
+}
+
+  replyButton.onclick = async () => {
+    const content = replyText.value.trim()
+    const fileInput = document.getElementById("imageInput")
+const file = fileInput.files[0]
+
+
+let imageUrl = null
+let imageName = null
+let imageSize = null
+let imageWidth = null
+let imageHeight = null
+
+if (file) {
+  imageName = file.name
+  imageSize = file.size
+
+  // Detectar resolución si es imagen o video
+  const url = URL.createObjectURL(file)
+
+  if (file.type.startsWith("image")) {
+    const img = new Image()
+    await new Promise(resolve => {
+      img.onload = () => {
+        imageWidth = img.width
+        imageHeight = img.height
+        resolve()
+      }
+      img.src = url
+    })
+  }
+
+  if (file.type.startsWith("video")) {
+    const video = document.createElement("video")
+    await new Promise(resolve => {
+      video.onloadedmetadata = () => {
+        imageWidth = video.videoWidth
+        imageHeight = video.videoHeight
+        resolve()
+      }
+      video.src = url
+    })
+  }
+
+  const filename = Date.now() + "_" + file.name
+
+const uploadBar = document.getElementById("uploadBar")
+const uploadProgress = document.getElementById("uploadProgress")
+const uploadText = document.getElementById("uploadText")
+
+uploadBar.classList.remove("hidden")
+uploadProgress.style.width = "0%"
+uploadText.textContent = "0%"
+
+const file_name = Date.now() + "_" + file.name
+
+const signed = await getSignedUploadUrl(filename)
+if (!signed) return
+
+await new Promise((resolve, reject) => {
+  const xhr = new XMLHttpRequest()
+  xhr.open("PUT", signed.signedUrl, true)
+
+  xhr.upload.onprogress = e => {
+    if (e.lengthComputable) {
+      const percent = Math.round((e.loaded / e.total) * 100)
+      uploadProgress.style.width = percent + "%"
+      uploadText.textContent = percent + "%"
+    }
+  }
+
+  xhr.onload = () => {
+    if (xhr.status === 200) resolve()
+    else reject(xhr.responseText)
+  }
+
+  xhr.onerror = () => reject("Upload failed")
+
+  xhr.send(file)
+})
+
+uploadText.textContent = "Done"
+
+imageUrl = signed.path
+imageUrl = supabase.storage.from("images").getPublicUrl(imageUrl).data.publicUrl
+
+}
+
+
+    // Insert post
+   const { data:{ session } } = await supabase.auth.getSession()
+
+let userId = null
+
+if(session){
+userId = session.user.id
+}
+
+const { error: postError } = await supabase
+.from("posts")
+.insert([{
+thread_id: threadId,
+content: content,
+user_id: userId,
+poster_id: posterId,
+image_url: imageUrl,
+image_name: imageName,
+image_size: imageSize,
+image_width: imageWidth,
+image_height: imageHeight,
+file_type: getFileType(file)
+}])
+
+    if (postError) {
+      alert(postError.message)
+      return
+    }
+
+    // Bump thread
+    const now = new Date().toISOString()
+
+    const { data: thread, error: fetchError } = await supabase
+      .from("threads")
+      .select("replies")
+      .eq("id", threadId)
+      .single()
+
+    if (fetchError) {
+      alert(fetchError.message)
+      return
+    }
+
+    const newReplies = (thread.replies || 0) + 1
+
+    const { error: bumpError } = await supabase
+      .from("threads")
+      .update({
+        last_bump: now,
+        replies: newReplies
+      })
+      .eq("id", threadId)
+
+    if (bumpError) {
+      alert(bumpError.message)
+      return
+    }
+
+    replyText.value = ""
+    document.getElementById("imageInput").value = ""
+    loadPosts()
+  }
+  loadPosts()
+  </script>
+
+  <script type="module" src="/js/userBar.js"></script>
+
+  </body>
+  </html>

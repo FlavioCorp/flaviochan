@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="icon" type="image/png" href="favicon.png">
+<meta charset="UTF-8">
+<title>Flaviochan</title>
+<link rel="stylesheet" href="/css/4chan.css">
+<style>
+
+/* FONDO WINDOWS XP */
+
+body{
+
+background:
+url("img/xp-bliss.jpg") no-repeat center center fixed;
+
+background-size:cover;
+
+font-family:Tahoma, Verdana, sans-serif;
+
+}
+
+
+/* QUITAR BORDES REDONDEADOS */
+
+.window,
+.sidebox,
+.group,
+.thread-card{
+
+border-radius:0;
+
+}
+
+
+/* VENTANAS XP TOSCAS */
+
+.window{
+
+border:2px solid #3a6ea5;
+
+background:#f1f6ff;
+
+box-shadow:
+
+inset 0 1px 0 #ffffff,
+
+inset 0 -1px 0 #d0d7e5;
+
+}
+
+
+/* TITULO VENTANA XP */
+
+.window-title{
+
+background:
+
+linear-gradient(#5ea6ff,#2c66c3);
+
+color:white;
+
+font-weight:bold;
+
+padding:6px 8px;
+
+border-bottom:1px solid #244a87;
+
+text-shadow:0 1px 1px rgba(0,0,0,0.5);
+
+}
+
+
+/* SIDEBAR XP */
+
+.sidebox{
+
+border:2px solid #3a6ea5;
+
+background:#f4f8ff;
+
+box-shadow:inset 0 1px 0 #ffffff;
+
+}
+
+
+/* TITULO SIDEBAR */
+
+.sidebox-title{
+
+background:linear-gradient(#5ea6ff,#2c66c3);
+
+border-bottom:1px solid #244a87;
+
+color:white;
+
+font-weight:bold;
+
+padding:6px;
+
+}
+
+
+/* BOARDS */
+
+.group{
+
+border:1px solid #6a90c5;
+
+background:#f6f9ff;
+
+}
+
+
+/* TITULO BOARDS */
+
+.group-title{
+
+background:linear-gradient(#6fb4ff,#3b7dd6);
+
+color:white;
+
+font-weight:bold;
+
+padding:4px;
+
+}
+
+
+/* LINKS BOARDS */
+
+.group-list a{
+
+background:#ffffff;
+
+border:1px solid #9bb6df;
+
+border-radius:0;
+
+padding:3px 5px;
+
+}
+
+.group-list a:hover{
+
+background:#dbe8ff;
+
+}
+
+
+/* THREAD CARDS */
+
+.thread-card{
+
+border:1px solid #6a90c5;
+
+background:#ffffff;
+
+border-radius:0;
+
+box-shadow:none;
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="userBar"></div>
+
+<div id="top-gradient"></div>
+<div id="sidebar">
+  <div class="sidebox">
+    <div class="sidebox-title">Rendimiento Destacado</div>
+    <div id="top-users">Pera ta cargando,,,</div>
+  </div>
+</div>
+
+<div id="content">
+
+  <div id="top-logo">
+    <img src="img/banner.png" alt="Flaviochan">
+  </div>
+
+  <div id="page">
+
+    <div id="main">
+
+      <div class="window">
+        <div class="window-title">
+          Desarrollado por Flavio Corporation. Todos los derechos reservados 2009.
+          <span class="close">✕</span>
+        </div>
+        <div class="window-body">
+          Un foro previamente prometido como propuesta en la campaña electoral del partido APRA hoy realizada con el fin de apoyar al alumnado de la I.E Jose Galvez en todo lo que necesite.
+        </div>
+      </div>
+
+      <div class="window">
+        <div class="window-title">Tablones</div>
+        <div id="board-groups">
+  <div class="group"><div class="group-title">1ros</div><div class="group-list" id="col-1"></div></div>
+  <div class="group"><div class="group-title">2dos</div><div class="group-list" id="col-2"></div></div>
+  <div class="group"><div class="group-title">3ros</div><div class="group-list" id="col-3"></div></div>
+  <div class="group"><div class="group-title">4tos</div><div class="group-list" id="col-4"></div></div>
+  <div class="group"><div class="group-title">5tos</div><div class="group-list" id="col-5"></div></div>
+</div>
+
+      </div>
+
+      <div class="window">
+        <div class="window-title">Otros hilos</div>
+
+        <div class="thread-grid">
+          <div class="thread-card">
+            <img src="https://via.placeholder.com/150">
+            <a>Thread title</a>
+            <div>Placeholder</div>
+          </div>
+          <div class="thread-card">
+            <img src="https://via.placeholder.com/150">
+            <a>Thread title</a>
+            <div>Placeholder</div>
+          </div>
+          <div class="thread-card">
+            <img src="https://via.placeholder.com/150">
+            <a>Thread title</a>
+            <div>Placeholder</div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div id="footer">
+
+    <div id="footer-links">
+      <a href="#">Home</a>
+      <a href="#">No se xddxdd</a>
+      <a href="#">Tampoco se xdxd</a>
+      <a href="#">ADMIN</a>
+      <a href="#">Reglas</a>
+    </div>
+
+    <div id="footer-sub">
+      <a href="#">About</a> •
+      <a href="#">Feedback</a> •
+      <a href="#">Legal</a> •
+      <a href="#">Contact</a>
+    </div>
+
+    <div id="footer-copy">
+      Copyright © 2009–2026 Flavio Corporation LLC. All rights reserved.
+    </div>
+
+  </div>
+
+</div>
+
+<script type="module">
+
+import { supabase } from "/js/supabase.js"
+import { loadTop } from "/js/top.js"
+
+
+loadTop()
+
+async function loadBoards() {
+  const { data, error } = await supabase
+    .from("boards")
+    .select("*")
+    .order("name")
+
+  if (error) {
+    alert(error.message)
+    return
+  }
+
+  // Limpia columnas
+  for (let i = 1; i <= 5; i++) {
+    document.getElementById("col-" + i).innerHTML = ""
+  }
+
+ data.forEach(b => {
+
+  const column = document.getElementById("col-" + b.grade)
+
+  if (!column) return
+
+  const a = document.createElement("a")
+  a.href = `board.html?board=${b.slug}`
+  a.textContent = "/" + b.name + "/"
+
+  column.appendChild(a)
+
+})
+}
+
+loadBoards()
+</script>
+
+<script type="module" src="/js/userBar.js"></script>
+
+</body>
+</html>
