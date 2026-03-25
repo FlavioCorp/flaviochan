@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h2>Top Editor</h2>
+
+<input id="name" placeholder="name">
+<input id="score" placeholder="score">
+<button id="add">Add</button>
+
+<div id="list"></div>
+
+<script type="module">
+import { supabase } from "../js/supabase.js"
+
+async function load() {
+  const { data } = await supabase.from("top_users").select("*")
+  const div = document.getElementById("list")
+  div.innerHTML=""
+  data.forEach(u=>{
+    div.innerHTML += `${u.name} (${u.score}) <button onclick="del(${u.id})">X</button><br>`
+  })
+}
+
+window.del = async id => {
+  await supabase.from("top_users").delete().eq("id", id)
+  load()
+}
+
+document.getElementById("add").onclick = async () => {
+  await supabase.from("top_users").insert([{
+    name: name.value,
+    score: score.value
+  }])
+  load()
+}
+
+load()
+</script>
+</body>
+</html>

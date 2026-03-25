@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h2>Moderation</h2>
+<div id="posts"></div>
+
+<script type="module">
+import { supabase } from "../js/supabase.js"
+
+const { data } = await supabase.from("posts").select("*").order("created_at", { ascending:false })
+
+const div = document.getElementById("posts")
+
+data.forEach(p => {
+  const d = document.createElement("div")
+  d.innerHTML = `${p.content} <button>Delete</button>`
+  d.querySelector("button").onclick = async () => {
+    await supabase.from("posts").delete().eq("id", p.id)
+    location.reload()
+  }
+  div.appendChild(d)
+})
+</script>
+</body>
+</html>

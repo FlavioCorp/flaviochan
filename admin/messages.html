@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h2>Messages</h2>
+<div id="msgs"></div>
+
+<script type="module">
+import { supabase } from "../js/supabase.js"
+
+const { data } = await supabase.from("messages").select("*").order("created_at", { ascending:false })
+
+const div = document.getElementById("msgs")
+data.forEach(m => {
+  div.innerHTML += `<p>${m.created_at}: ${m.content}</p>`
+})
+</script>
+</body>
+</html>

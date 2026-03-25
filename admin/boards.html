@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h2>TABLONES</h2>
+
+<input id="slug" placeholder="slug">
+<input id="name" placeholder="name">
+<button id="create">Create</button>
+
+<div id="list"></div>
+
+<script type="module">
+import { supabase } from "../js/supabase.js"
+
+async function load() {
+  const { data } = await supabase.from("boards").select("*")
+  const div = document.getElementById("list")
+  div.innerHTML=""
+  data.forEach(b => {
+    div.innerHTML += `${b.slug} <button onclick="del(${b.id})">X</button><br>`
+  })
+}
+
+window.del = async id => {
+  await supabase.from("boards").delete().eq("id", id)
+  load()
+}
+
+document.getElementById("create").onclick = async () => {
+  await supabase.from("boards").insert([{
+    slug: document.getElementById("slug").value,
+    name: document.getElementById("name").value
+  }])
+  load()
+}
+
+load()
+</script>
+</body>
+</html>

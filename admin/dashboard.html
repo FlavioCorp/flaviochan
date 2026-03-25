@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <script type="module">
+import { supabase } from "../js/supabase.js"
+
+const { data } = await supabase.auth.getUser()
+
+if (!data.user) {
+  window.location.href = "admin.html"
+}
+</script>
+
+<h1>Admin Panel</h1>
+
+<a href="messages.html">View Messages</a><br>
+<a href="boards.html">Manage Boards</a><br>
+<a href="top.html">Edit Top</a><br>
+<a href="moderation.html">Moderation</a><br>
+
+</body>
+</html>

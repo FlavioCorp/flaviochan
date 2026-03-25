@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Consola chad xdxd</title>
+<link href="https://fonts.googleapis.comcss2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+<style>
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  background:#000;
+  font-family:"Share Tech Mono", monospace;
+  color:white;
+}
+
+#screen{
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.panel{
+  border:3px solid red;
+  padding:25px;
+  min-width:650px;
+  max-width:750px;
+  background:black;
+}
+
+.title{
+  text-align:center;
+  font-size:28px;
+  margin-bottom:15px;
+  border-bottom:2px solid red;
+  padding-bottom:10px;
+}
+
+.center{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+input{
+  background:black;
+  border:2px solid red;
+  color:white;
+  padding:10px;
+  font-size:16px;
+  width:260px;
+  text-align:center;
+  margin-top:10px;
+}
+
+button{
+  background:black;
+  border:2px solid red;
+  color:white;
+  padding:8px 18px;
+  font-size:14px;
+  cursor:pointer;
+  margin-top:10px;
+}
+
+button:hover{
+  background:red;
+  color:black;
+}
+
+#error{
+  display:none;
+  margin-top:15px;
+  text-align:center;
+  color:red;
+}
+
+#error img{
+  margin-top:10px;
+  max-width:250px;
+  border:2px solid red;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:15px;
+}
+
+.cell{
+  border:2px solid red;
+  padding:8px;
+  text-align:center;
+  cursor:pointer;
+}
+
+.cell:hover{
+  background:red;
+  color:black;
+}
+
+.close{
+  margin-top:20px;
+  text-align:center;
+  border:2px solid red;
+  padding:10px;
+  cursor:pointer;
+}
+
+.close:hover{
+  background:red;
+  color:black;
+}
+
+.user-row{
+  margin-bottom:8px;
+  border-bottom:1px solid red;
+  padding-bottom:5px;
+}
+</style>
+</head>
+
+<body>
+<div id="screen">
+
+<!-- LOGIN -->
+<div id="login" class="panel center">
+  <div class="title">Consola chad xdxd</div>
+
+  <input id="email" type="email" placeholder="Admin email">
+  <input id="password" type="password" placeholder="Admin password">
+
+  <button id="loginBtn">Entrar</button>
+
+  <div id="error">
+    JAJJJ NO SE SABE LA CONTRASEÑA XDXDXD
+    <br>
+    <img src="https://i.imgur.com/Z6a7z2H.png">
+  </div>
+</div>
+
+<!-- CONSOLE -->
+<div id="console" class="panel" style="display:none;">
+  <div class="title">Consola chad xdxd</div>
+
+  <div id="menuPanel">
+    <div class="grid">
+      <div class="cell" data-action="manage-users">Manage Users</div>
+      <div class="cell" data-action="delete-post">Delete Post</div>
+      <div class="cell" data-action="reports">Reports</div>
+      <div class="cell" data-action="placeholder">More Tools</div>
+    </div>
+  </div>
+
+  <div id="actionPanel" style="display:none; margin-top:20px; border-top:2px solid red; padding-top:15px;">
+    <div id="actionTitle" style="font-size:18px; margin-bottom:10px;"></div>
+    <div id="actionContent"></div>
+    <div class="close" id="backBtn">← Back</div>
+  </div>
+
+  <div class="close" id="logoutBtn">Cerrar sesión</div>
+</div>
+
+</div>
+
+<script type="module">
+import { supabase } from "./supabase.js"
+
+const loginBtn = document.getElementById("loginBtn")
+const errorBox = document.getElementById("error")
+const loginPanel = document.getElementById("login")
+const consolePanel = document.getElementById("console")
+
+const menuPanel = document.getElementById("menuPanel")
+const actionPanel = document.getElementById("actionPanel")
+const actionTitle = document.getElementById("actionTitle")
+const actionContent = document.getElementById("actionContent")
+const backBtn = document.getElementById("backBtn")
+
+// -------- LOGIN --------
+loginBtn.onclick = async () => {
+  errorBox.style.display = "none"
+
+  const email = document.getElementById("email").value.trim()
+  const password = document.getElementById("password").value.trim()
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  })
+console.log(error)
+  if (error) {
+    errorBox.style.display = "block"
+    return
+  }
+
+  await checkAdminAndEnter()
+}
+
+// -------- CHECK ADMIN --------
+async function checkAdminAndEnter() {
+  const { data: userData, error: userError } = await supabase.auth.getUser()
+
+  if (userError || !userData.user) {
+    errorBox.style.display = "block"
+    return
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", userData.user.id)
+    .single()
+
+  if (profileError || !profile || profile.is_admin !== true) {
+    await supabase.auth.signOut()
+    errorBox.style.display = "block"
+    return
+  }
+
+  loginPanel.style.display = "none"
+  consolePanel.style.display = "block"
+}
+
+// -------- AUTO SESSION CHECK (SOLO SI HAY SESIÓN) --------
+const { data: sessionCheck } = await supabase.auth.getSession()
+if (sessionCheck.session) {
+  checkAdminAndEnter()
+}
+
+// -------- LOGOUT --------
+document.getElementById("logoutBtn").onclick = async () => {
+  await supabase.auth.signOut()
+  location.reload()
+}
+
+// -------- MENU CLICK --------
+document.querySelectorAll(".cell").forEach(cell => {
+  cell.addEventListener("click", () => {
+    openAction(cell.dataset.action)
+  })
+})
+
+backBtn.onclick = () => {
+  actionPanel.style.display = "none"
+  menuPanel.style.display = "block"
+}
+
+// -------- ACTION HANDLER --------
+function openAction(action) {
+  menuPanel.style.display = "none"
+  actionPanel.style.display = "block"
+  actionContent.innerHTML = ""
+
+  switch (action) {
+
+    case "manage-users":
+      actionTitle.textContent = "Manage Users"
+      actionContent.innerHTML = `<div id="usersList">Loading...</div>`
+      loadUsers()
+      break
+
+    case "delete-post":
+      actionTitle.textContent = "Delete Post"
+      actionContent.innerHTML = `
+        <input id="deleteId" placeholder="Post ID">
+        <button id="deleteBtn">Delete</button>
+        <div id="deleteStatus"></div>
+      `
+      document.getElementById("deleteBtn").onclick = deletePost
+      break
+
+    case "reports":
+      actionTitle.textContent = "Reports"
+      actionContent.innerHTML = `<div>No reports system yet.</div>`
+      break
+
+    default:
+      actionTitle.textContent = "Coming Soon"
+      actionContent.textContent = "Tool not implemented yet."
+  }
+}
+
+// -------- DELETE POST --------
+async function deletePost() {
+  const id = document.getElementById("deleteId").value.trim()
+  const status = document.getElementById("deleteStatus")
+
+  if (!id) {
+    status.textContent = "Enter valid ID"
+    return
+  }
+
+  const { error } = await supabase
+    .from("posts")
+    .delete()
+    .eq("id", id)
+
+  if (error) {
+    status.textContent = "Error: " + error.message
+  } else {
+    status.textContent = "Post deleted"
+  }
+}
+
+// -------- LOAD USERS --------
+async function loadUsers() {
+  const container = document.getElementById("usersList")
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select(`
+      id,
+      is_admin,
+      auth:auth.users(email)
+    `)
+
+  if (error) {
+    container.textContent = "Error loading users"
+    return
+  }
+
+  container.innerHTML = ""
+
+  data.forEach(user => {
+    const div = document.createElement("div")
+    div.className = "user-row"
+
+    div.innerHTML = `
+      ${user.auth?.email || "No email"} |
+      ${user.is_admin ? "ADMIN" : "USER"}
+      <button>
+        ${user.is_admin ? "Revoke" : "Promote"}
+      </button>
+    `
+
+    div.querySelector("button").onclick = async () => {
+      await supabase
+        .from("profiles")
+        .update({ is_admin: !user.is_admin })
+        .eq("id", user.id)
+
+      loadUsers()
+    }
+
+    container.appendChild(div)
+  })
+}
+</script>
+
+</body>
+</html>

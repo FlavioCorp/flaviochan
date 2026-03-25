@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h2>Alcalde</h2>
+<input id="email" placeholder="Email"><br>
+<input id="password" type="password" placeholder="Password"><br>
+<button id="login">Entrar</button>
+<p id="status"></p>
+
+<script type="module">
+import { supabase } from "../js/supabase.js"
+
+document.getElementById("login").onclick = async () => {
+  const email = document.getElementById("email").value
+  const password = document.getElementById("password").value
+
+  const { error } = await supabase.auth.signInWithPassword({ email, password })
+
+  if (error) {
+    document.getElementById("status").textContent = "Login failed"
+  } else {
+    window.location = "dashboard.html"
+  }
+}
+</script>
+</body>
+</html>
